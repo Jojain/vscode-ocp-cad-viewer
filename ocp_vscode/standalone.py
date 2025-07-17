@@ -24,7 +24,6 @@ from flask_sock import Sock
 from ocp_vscode.comms import MessageType
 from ocp_vscode.backend import ViewerBackend
 from ocp_vscode.backend_logo import logo
-import pyperclip
 
 CONFIG_FILE = Path.home() / ".ocpvscode_standalone"
 
@@ -289,9 +288,6 @@ class Viewer:
                     changes = message["text"]
                     self.debug_print("Received incremental UI changes", changes)
                     for key, value in changes.items():
-                        if key == "selected":
-                            pyperclip.copy((",").join(changes.get("selected", [])))
-
                         self.status[key] = value
                     self.backend.handle_event(changes, MessageType.UPDATES)
 
