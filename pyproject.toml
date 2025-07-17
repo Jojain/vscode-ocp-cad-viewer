@@ -30,7 +30,6 @@ classifiers = [
 dependencies = [
     "ocp-tessellate>=3.0.15,<3.1.0",
     "requests",
-    "ipykernel",
     "orjson",
     "websockets>=13.0,<14.0",
     "pyaml",
