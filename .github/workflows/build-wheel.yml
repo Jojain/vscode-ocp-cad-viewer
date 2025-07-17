@@ -31,3 +31,37 @@ jobs:
       with:
         name: ocp_vscode-wheel
         path: dist/*.whl
+        retention-days: 90
+
+    - name: Display artifact URL
+      run: |
+        echo "Artifact URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts"
+        echo "Download URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/ocp_vscode-wheel"
+
+  deploy_to_github_pages:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout gh-pages branch
+      uses: actions/checkout@v4
+      with:
+        ref: gh-pages
+
+    - name: Download wheel artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: ocp_vscode-wheel
+        path: .
+
+    - name: Extract wheel
+      run: |
+        unzip ocp_vscode-wheel.zip
+        mv dist/*.whl .
+
+    - name: Deploy to GitHub Pages
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add -v .
+        git commit -m "Update wheel" || echo "No changes to commit"
+        git push origin gh-pages
