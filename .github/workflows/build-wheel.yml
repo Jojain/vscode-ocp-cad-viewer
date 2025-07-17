@@ -35,18 +35,18 @@ jobs:
 
     - name: Deploy wheel to GitHub Pages
       run: |
+        # Get wheel file info
+        WHEEL_FILE=$(ls dist/*.whl | head -1)
+        WHEEL_NAME=$(basename "$WHEEL_FILE")
+        
         # Create gh-pages branch if it doesn't exist
         git checkout --orphan gh-pages || git checkout gh-pages
         
-        # Clear the branch (keep only the wheel)
-        git rm -rf . || true
-        git clean -fxd
-        
         # Copy the wheel file
-        cp dist/*.whl .
+        cp "$WHEEL_FILE" .
         
-        # Commit and push
-        git add *.whl
+        # Add only the wheel file
+        git add "$WHEEL_NAME"
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
         git commit -m "Update wheel" || echo "No changes to commit"
