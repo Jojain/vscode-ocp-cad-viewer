@@ -1,0 +1,66 @@
+name: Build Wheel for Pyodide
+
+on:
+  push:
+    branches: [ no_pyperclip]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+
+    - name: Install build dependencies
+      run: |
+        pip install build wheel
+
+    - name: Build wheel
+      run: |
+        python -m build --wheel
+
+    - name: Upload wheel
+      uses: actions/upload-artifact@v4
+      with:
+        name: ocp_vscode-wheel
+        path: dist/*.whl
+        retention-days: 90
+
+    - name: Deploy wheel to GitHub Pages
+      run: |
+        # Get wheel file info
+        WHEEL_FILE=$(ls dist/*.whl | head -1)
+        WHEEL_NAME=$(basename "$WHEEL_FILE")
+        
+        # Switch to no_pyperclip branch
+        git checkout no_pyperclip
+        
+        # Copy the wheel file
+        cp "$WHEEL_FILE" .
+        
+        # Add only the wheel file
+        git add "$WHEEL_NAME"
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git commit -m "Update wheel" || echo "No changes to commit"
+        git push origin no_pyperclip
+
+    - name: Display GitHub Pages URL
+      run: |
+        WHEEL_NAME=$(ls dist/*.whl | head -1 | xargs basename)
+        echo "Wheel deployed to GitHub Pages:"
+        echo "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/$WHEEL_NAME"
+        echo ""
+        echo "Use this URL in Pyodide:"
+        echo "await micropip.install('https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/$WHEEL_NAME')" 

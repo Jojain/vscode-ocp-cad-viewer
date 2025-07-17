@@ -289,9 +289,6 @@ class Viewer:
                     changes = message["text"]
                     self.debug_print("Received incremental UI changes", changes)
                     for key, value in changes.items():
-                        if key == "selected":
-                            pyperclip.copy((",").join(changes.get("selected", [])))
-
                         self.status[key] = value
                     self.backend.handle_event(changes, MessageType.UPDATES)
 
