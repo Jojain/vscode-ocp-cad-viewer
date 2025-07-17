@@ -33,35 +33,30 @@ jobs:
         path: dist/*.whl
         retention-days: 90
 
-    - name: Display artifact URL
+    - name: Deploy wheel to GitHub Pages
       run: |
-        echo "Artifact URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts"
-        echo "Download URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/ocp_vscode-wheel"
-
-  deploy_to_github_pages:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout gh-pages branch
-      uses: actions/checkout@v4
-      with:
-        ref: gh-pages
-
-    - name: Download wheel artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: ocp_vscode-wheel
-        path: .
-
-    - name: Extract wheel
-      run: |
-        unzip ocp_vscode-wheel.zip
-        mv dist/*.whl .
-
-    - name: Deploy to GitHub Pages
-      run: |
+        # Create gh-pages branch if it doesn't exist
+        git checkout --orphan gh-pages || git checkout gh-pages
+        
+        # Clear the branch (keep only the wheel)
+        git rm -rf . || true
+        git clean -fxd
+        
+        # Copy the wheel file
+        cp dist/*.whl .
+        
+        # Commit and push
+        git add *.whl
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
-        git add -v .
         git commit -m "Update wheel" || echo "No changes to commit"
-        git push origin gh-pages
+        git push origin gh-pages --force
+
+    - name: Display GitHub Pages URL
+      run: |
+        WHEEL_NAME=$(ls dist/*.whl | head -1 | xargs basename)
+        echo "Wheel deployed to GitHub Pages:"
+        echo "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/$WHEEL_NAME"
+        echo ""
+        echo "Use this URL in Pyodide:"
+        echo "await micropip.install('https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/$WHEEL_NAME')"
