@@ -276,8 +276,6 @@ def get_default(key):
 
 def get_defaults():
     """Get all defaults"""
-    if is_emscripten():
-        return DEFAULTS
     result = dict(workspace_config())
     result.update(DEFAULTS)
     return result
@@ -482,7 +480,8 @@ def workspace_config(port=None, viewer=None):
             "default_thickedgecolor": (123, 45, 6),
             "default_vertexcolor": (123, 45, 6),
         }
-
+    if is_emscripten():
+        return DEFAULTS
     if not is_jupyter_cadquery and port is None:
         port = get_port()
     try:
