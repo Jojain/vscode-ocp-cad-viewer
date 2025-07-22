@@ -454,6 +454,9 @@ def status(port=None, viewer=None, debug=False):
 
     if is_pytest():
         return {}
+    
+    if is_emscripten():
+        return {}
 
     if not is_jupyter_cadquery and port is None:
         port = get_port()
