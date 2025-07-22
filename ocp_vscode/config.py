@@ -17,6 +17,7 @@
 #
 
 import os
+import sys
 
 if os.environ.get("JUPYTER_CADQUERY") is None:
     from ocp_vscode.comms import send_command, send_config, get_port, is_pytest
@@ -33,6 +34,10 @@ from ocp_tessellate.utils import Color
 
 from enum import Enum
 
+
+def is_emscripten():
+    """Check if running on Emscripten platform"""
+    return hasattr(sys, 'get_emscripten_version') or 'emscripten' in sys.platform
 
 __all__ = [
     "workspace_config",
@@ -271,6 +276,8 @@ def get_default(key):
 
 def get_defaults():
     """Get all defaults"""
+    if is_emscripten():
+        return DEFAULTS
     result = dict(workspace_config())
     result.update(DEFAULTS)
     return result
