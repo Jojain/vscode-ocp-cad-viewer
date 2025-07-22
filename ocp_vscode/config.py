@@ -37,7 +37,9 @@ from enum import Enum
 
 def is_emscripten():
     """Check if running on Emscripten platform"""
-    return hasattr(sys, 'get_emscripten_version') or 'emscripten' in sys.platform
+    print("Checking if running on Emscripten platform")
+    print(sys.platform)
+    return sys.platform == 'emscripten'
 
 __all__ = [
     "workspace_config",
