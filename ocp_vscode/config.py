@@ -37,8 +37,6 @@ from enum import Enum
 
 def is_emscripten():
     """Check if running on Emscripten platform"""
-    print("Checking if running on Emscripten platform")
-    print(sys.platform)
     return sys.platform == 'emscripten'
 
 __all__ = [
