@@ -17,6 +17,7 @@
 #
 
 import os
+import sys
 
 if os.environ.get("JUPYTER_CADQUERY") is None:
     from ocp_vscode.comms import send_command, send_config, get_port, is_pytest
@@ -33,6 +34,12 @@ from ocp_tessellate.utils import Color
 
 from enum import Enum
 
+
+def is_emscripten():
+    """Check if running on Emscripten platform"""
+    print("Checking if running on Emscripten platform")
+    print(sys.platform)
+    return sys.platform == 'emscripten'
 
 __all__ = [
     "workspace_config",
@@ -447,6 +454,9 @@ def status(port=None, viewer=None, debug=False):
 
     if is_pytest():
         return {}
+    
+    if is_emscripten():
+        return {}
 
     if not is_jupyter_cadquery and port is None:
         port = get_port()
@@ -475,7 +485,8 @@ def workspace_config(port=None, viewer=None):
             "default_thickedgecolor": (123, 45, 6),
             "default_vertexcolor": (123, 45, 6),
         }
-
+    if is_emscripten():
+        return DEFAULTS
     if not is_jupyter_cadquery and port is None:
         port = get_port()
     try:

@@ -20,6 +20,7 @@ import enum
 import json
 import os
 import socket
+import sys
 import warnings
 
 import questionary
@@ -88,6 +89,7 @@ __all__ = [
     "get_port",
     "listener",
     "is_pytest",
+    "is_emscripten",
 ]
 
 
@@ -95,8 +97,17 @@ def is_pytest():
     return os.environ.get("OCP_VSCODE_PYTEST") == "1"
 
 
+def is_emscripten():
+    """Check if running on Emscripten platform"""
+    return hasattr(sys, 'get_emscripten_version') or 'emscripten' in sys.platform
+
+
 def port_check(port):
     """Check whether the port is listening"""
+    # For Emscripten platform, port checking is not applicable
+    if is_emscripten():
+        return False
+    
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(1)
     result = s.connect_ex((get_host(), port)) == 0
@@ -141,6 +152,65 @@ def set_port(port, host="127.0.0.1"):
     INIT_DONE = True
 
 
+def _send_emscripten(data, message_type):
+    """Send data to the viewer via JavaScript bridge (Emscripten)"""
+    try:
+        j = orjson.dumps(data, default=default)  # pylint: disable=no-member
+        if message_type == MessageType.COMMAND:
+            j = b"C:" + j
+        elif message_type == MessageType.DATA:
+            j = b"D:" + j
+        elif message_type == MessageType.LISTEN:
+            j = b"L:" + j
+        elif message_type == MessageType.BACKEND:
+            j = b"B:" + j
+        elif message_type == MessageType.BACKEND_RESPONSE:
+            j = b"R:" + j
+        elif message_type == MessageType.CONFIG:
+            j = b"S:" + j
+
+        # Call the JavaScript function provided by Pyodide
+        try:
+            # Import the send_data_to_js function from the global scope
+            send_data_to_js = globals().get('send_data_to_js')
+            if send_data_to_js is None:
+                # Try to get it from the builtins if it's not in globals
+                import builtins
+                send_data_to_js = getattr(builtins, 'send_data_to_js', None)
+            
+            if send_data_to_js is None:
+                raise RuntimeError("send_data_to_js function not found. Make sure it's provided to Pyodide.")
+            
+            # Convert bytes to string for JavaScript
+            j_str = j.decode('utf-8')
+            result = send_data_to_js(j_str, message_type.name)
+            
+            # Handle response for commands
+            if message_type == MessageType.COMMAND and not (
+                isinstance(data, dict) and data["type"] == "screenshot"
+            ):
+                if result and isinstance(result, str):
+                    try:
+                        return json.loads(result)
+                    except Exception as ex:  # pylint: disable=broad-except
+                        print(ex)
+                return result
+            elif message_type == MessageType.COMMAND and (
+                isinstance(data, dict) and data["type"] == "screenshot"
+            ):
+                return {}
+            else:
+                return result
+                
+        except Exception as ex:
+            print(f"Error calling send_data_to_js: {ex}")
+            return None
+            
+    except Exception as ex:  # pylint: disable=broad-except
+        print(f"Error in Emscripten send: {ex}")
+        return None
+
+
 def _send(data, message_type, port=None, timeit=False):
     """Send data to the viewer"""
     global WS
@@ -150,6 +220,12 @@ def _send(data, message_type, port=None, timeit=False):
             find_and_set_port()
             set_connection_file()
         port = CMD_PORT
+    
+    # Check if running on Emscripten platform
+    if is_emscripten():
+        return _send_emscripten(data, message_type)
+    
+    # Original websocket implementation for non-Emscripten platforms
     try:
         with Timer(timeit, "", "json dumps", 1):
             j = orjson.dumps(data, default=default)  # pylint: disable=no-member
@@ -250,6 +326,11 @@ def listener(callback):
     """Listen for data from the viewer"""
 
     def _listen():
+        # For Emscripten platform, listening is handled differently
+        if is_emscripten():
+            print("Listener not supported on Emscripten platform")
+            return
+        
         last_config = {}
         with connect(f"{CMD_URL}:{CMD_PORT}", max_size=2**28) as websocket:
             websocket.send(b"L:Python listener")
@@ -314,6 +395,12 @@ def find_and_set_port():
                 port = int(port)
 
         return port
+
+    # For Emscripten platform, port management is not needed
+    if is_emscripten():
+        print("Port management not needed on Emscripten platform")
+        set_port(0, "emscripten")
+        return
 
     try:
         port = int(os.environ.get("OCP_PORT", "0"))

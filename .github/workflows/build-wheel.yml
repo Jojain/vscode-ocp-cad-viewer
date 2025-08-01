@@ -9,6 +9,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -39,8 +43,8 @@ jobs:
         WHEEL_FILE=$(ls dist/*.whl | head -1)
         WHEEL_NAME=$(basename "$WHEEL_FILE")
         
-        # Create gh-pages branch if it doesn't exist
-        git checkout --orphan gh-pages || git checkout gh-pages
+        # Switch to no_pyperclip branch
+        git checkout no_pyperclip
         
         # Copy the wheel file
         cp "$WHEEL_FILE" .
@@ -50,7 +54,7 @@ jobs:
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
         git commit -m "Update wheel" || echo "No changes to commit"
-        git push origin gh-pages --force
+        git push origin no_pyperclip
 
     - name: Display GitHub Pages URL
       run: |
@@ -59,4 +63,4 @@ jobs:
         echo "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/$WHEEL_NAME"
         echo ""
         echo "Use this URL in Pyodide:"
-        echo "await micropip.install('https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/$WHEEL_NAME')"
+        echo "await micropip.install('https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/$WHEEL_NAME')" 
