@@ -147,7 +147,6 @@ def get_host():
 def set_port(port, host="127.0.0.1"):
     """Set the port"""
     if is_emscripten():
-        print("Setting port is not applicable for Emscripten platform")
         return
     
     global CMD_PORT, CMD_URL, INIT_DONE  # pylint: disable=global-statement
@@ -217,6 +216,11 @@ def _send_emscripten(data, message_type):
 
 def _send(data, message_type, port=None, timeit=False):
     """Send data to the viewer"""
+
+        # Check if running on Emscripten platform
+    if is_emscripten():
+        return _send_emscripten(data, message_type)
+    
     global WS
 
     if port is None:
@@ -224,10 +228,6 @@ def _send(data, message_type, port=None, timeit=False):
             find_and_set_port()
             set_connection_file()
         port = CMD_PORT
-    
-    # Check if running on Emscripten platform
-    if is_emscripten():
-        return _send_emscripten(data, message_type)
     
     # Original websocket implementation for non-Emscripten platforms
     try:
