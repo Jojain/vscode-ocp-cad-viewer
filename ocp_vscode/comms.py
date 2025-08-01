@@ -146,6 +146,10 @@ def get_host():
 
 def set_port(port, host="127.0.0.1"):
     """Set the port"""
+    if is_emscripten():
+        print("Setting port is not applicable for Emscripten platform")
+        return
+    
     global CMD_PORT, CMD_URL, INIT_DONE  # pylint: disable=global-statement
     CMD_PORT = port
     CMD_URL = f"ws://{host}"
@@ -398,7 +402,6 @@ def find_and_set_port():
 
     # For Emscripten platform, port management is not needed
     if is_emscripten():
-        print("Port management not needed on Emscripten platform")
         set_port(0, "emscripten")
         return
 
